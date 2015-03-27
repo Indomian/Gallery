@@ -56,6 +56,7 @@ GAL.panel.Album = function(config) {
                             xtype: 'textarea'
                             ,fieldLabel: _('description')
                             ,name: 'description'
+						    ,id: 'description-field'
                             ,anchor: '100%'
                         },{
                             layout: 'column'
@@ -143,12 +144,21 @@ GAL.panel.Album = function(config) {
             ,'success': {fn:this.success,scope:this}
         }
     });
+	var ta = Ext.get('description-field');
+	if (ta) { ta.on('keydown',this.fieldChangeEvent,this); }
     GAL.panel.Album.superclass.constructor.call(this,config);
 };
 Ext.extend(GAL.panel.Album,MODx.FormPanel,{
     initialized: false
     ,windows: {}
+	,rteLoaded: false
     ,setup: function() {
+		if(this.initialized && !this.rteLoaded) {
+			if(MODx.loadRTE) {
+				MODx.loadRTE('description-field');
+				this.rteLoaded=true;
+			}
+		}
         if (!this.config.album || this.initialized) return;
         MODx.Ajax.request({
             url: this.config.url
@@ -159,7 +169,10 @@ Ext.extend(GAL.panel.Album,MODx.FormPanel,{
             ,listeners: {
                 'success': {fn:function(r) {
                     this.getForm().setValues(r.object);
-
+	                if(MODx.loadRTE) {
+		                MODx.loadRTE('description-field');
+		                this.rteLoaded=true;
+	                }
                     Ext.getCmp('gal-album-header').getEl().update('<h2>'+_('gallery.album')+': '+r.object.name+'</h2>');
                     this.initialized = true;
                 },scope:this}
@@ -167,9 +180,13 @@ Ext.extend(GAL.panel.Album,MODx.FormPanel,{
         });
     }
     ,beforeSubmit: function(o) {
+		if(this.rteLoaded) {
+			MODx.unloadRTE('description-field');
+			this.rteLoaded=false;
+		}
         Ext.apply(o.form.baseParams,{
         });
-    }
+	}
     ,updateCover:function(btn,e) {
         var form=this.findParentByType('gal-panel-album');
         var data=form.getForm().getValues();
@@ -284,7 +301,7 @@ GAL.panel.AlbumItems = function(config) {
             id: 'gal-album-items-ct'
             ,cls: 'browser-view'
             ,region: 'center'
-            ,width: '75%'
+            ,width: '70%'
             ,minHeight: 450
             ,autoScroll: true
             ,border: false
